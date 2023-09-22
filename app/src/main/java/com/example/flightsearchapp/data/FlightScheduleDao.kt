@@ -10,12 +10,17 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FlightScheduleDao {
 
-//    @Query("Select * from airport")
-//    fun getAll(): Flow<List<Airport>>
-//
-    @Query("Select * from airport where name = :name order by name")
-    fun getAirportByName(name: String): Flow<List<Airport>>
+    @Query("Select * from airport where iata_code = :name")
+    fun getAirportByName(name: String): Flow<Airport>
 
-    @Query("Select * from airport where name like '%' || :input || '%' or iata_code like '%' || :input  || '%' order by passengers")
-    fun getIataCodeByName(input: String): Flow<List<Airport>>
+    @Query("""
+        Select * 
+from airport
+where iata_code != :name
+order by passengers
+    """)
+    fun getFlightListByAirport(name: String): Flow<List<Airport>>
+
+    @Query("Select * from airport where name like '%' || :name || '%' or iata_code like '%' || :name  || '%' order by passengers")
+    fun getIataCodeByName(name: String): Flow<List<Airport>>
 }

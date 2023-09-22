@@ -44,10 +44,18 @@ class FlightSearchViewModel(
         _userInputFlow.value = ""
     }
 
+    private val _currentAirPort = MutableStateFlow<Airport?>(null)
+    val currentAirport: StateFlow<Airport?> get() = _currentAirPort
 
+    fun setCurrentAirport(airport: Airport) {
+        _currentAirPort.value = airport
+    }
 
-    fun geatAirportByName(userInput: String): Flow<List<Airport>> =
+    fun getAirportByName(userInput: String): Flow<Airport> =
         flightScheduleDao.getAirportByName(userInput)
+
+    fun getFlightListByAirport(userInput: String): Flow<List<Airport>> =
+        flightScheduleDao.getFlightListByAirport(userInput)
 
     fun getIataCodeByName(userInput: String): Flow<List<Airport>> {
         return flightScheduleDao.getIataCodeByName(userInput)
