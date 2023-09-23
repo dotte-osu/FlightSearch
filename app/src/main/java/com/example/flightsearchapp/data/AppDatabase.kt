@@ -6,7 +6,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = arrayOf(Airport::class,Favorite::class), version = 1)
+@Database(entities = [Airport::class, Favorite::class], version = 1)
 abstract class AppDatabase: RoomDatabase(){
 
     abstract fun flightScheduleDao(): FlightScheduleDao
@@ -15,19 +15,18 @@ abstract class AppDatabase: RoomDatabase(){
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase{
-            return INSTANCE ?: synchronized(this){
+        fun getDatabase(context: Context): AppDatabase {
+            // if the Instance is not null, return it, otherwise create a new database instance.
+            return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
                     context,
                     AppDatabase::class.java,
-                    "app_database"
+                    "flight_database"
                 )
                     .createFromAsset("database/flight_search.db")
-                    .fallbackToDestructiveMigration()
+                    //.fallbackToDestructiveMigration()
                     .build()
-                    .also {
-                        INSTANCE = it
-                    }
+                    .also { INSTANCE = it }
             }
         }
     }
