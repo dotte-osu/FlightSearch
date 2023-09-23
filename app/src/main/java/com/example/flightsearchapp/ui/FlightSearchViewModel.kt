@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.toUpperCase
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -18,6 +19,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.flightsearchapp.FlightSearchApplication
 import com.example.flightsearchapp.data.Airport
+import com.example.flightsearchapp.data.Favorite
 import com.example.flightsearchapp.data.FlightScheduleDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class FlightSearchViewModel(
     private val flightScheduleDao: FlightScheduleDao
@@ -40,15 +43,11 @@ class FlightSearchViewModel(
         _userInputFlow.value = userInput
     }
 
-    fun clear() {
-        _userInputFlow.value = ""
-    }
 
-    private val _currentAirPort = MutableStateFlow<Airport?>(null)
-    val currentAirport: StateFlow<Airport?> get() = _currentAirPort
-
-    fun setCurrentAirport(airport: Airport) {
-        _currentAirPort.value = airport
+    private val _favorite = MutableStateFlow<Favorite?>(null)
+    val favorite: StateFlow<Favorite?>  get() = _favorite
+    fun updateFavorite(favorite: Favorite) {
+        _favorite.value = favorite
     }
 
     fun getAirportByName(userInput: String): Flow<Airport> =
@@ -61,27 +60,25 @@ class FlightSearchViewModel(
         return flightScheduleDao.getIataCodeByName(userInput)
     }
 
+    fun getAllFavorites():Flow<List<Favorite>>{
+        return flightScheduleDao.getAllFavorites()
+    }
 
-//    fun getAirportByName(): Flow<List<Airport>> = flightScheduleDao.getAirportByName(_userInputFlow.value)
-//    fun getIataCodeByName(): Flow<List<Airport>> = flightScheduleDao.getIataCodeByName(_userInputFlow.value)
-//
-//    var uiState: StateFlow<UiState> =
-//        flightScheduleDao.getIataCodeByName(userInput)
-//            .filterNotNull()
-//            .map {
-//                Log.d("FlightSearchViewModel2","uiState")
-//                Log.d("FlightSearchViewModel2","${_uiState.value.userInput}")
-//                UiState(airports = it)
-//            }
-//            .stateIn(
-//                scope = viewModelScope,
-//                started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
-//                initialValue = UiState()
-//            )
+    suspend fun saveFavorite(departureCode: String, destinationCode: String) {
+        Log.d("Log","saveFavorite")
+        val tmp = Favorite(
+            departureCode = departureCode,
+            destinationCode = destinationCode,
+        )
+        flightScheduleDao.insert(tmp)
+    }
+
+    suspend fun removeFavorite(departureCode: String, destinationCode: String) {
+        val favorite: Favorite = flightScheduleDao.getSingleFavorite(departureCode.uppercase(), destinationCode.uppercase())
+        if(favorite != null)flightScheduleDao.delete(favorite)
+    }
 
     companion object {
-
-        private const val TIMEOUT_MILLIS = 5_000L
         val factory : ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 FlightSearchViewModel(flightStateApplication().database.flightScheduleDao())

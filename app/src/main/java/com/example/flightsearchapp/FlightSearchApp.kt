@@ -27,6 +27,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 enum class FlightSearchScreens{
     FlightSearch,
@@ -40,8 +42,9 @@ fun FlightSearchApp(
 
     val navController = rememberNavController()
     val userInput by viewModel.userInput.collectAsState()
-   // val currentAirport by viewModel.currentAirport.collectAsState()
     val airports by viewModel.getIataCodeByName(userInput).collectAsState(emptyList())
+    val favorites = viewModel.getAllFavorites().collectAsState(emptyList())
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -68,6 +71,7 @@ fun FlightSearchApp(
             ){
                 composable(
                     route = FlightSearchScreens.FlightSearch.name
+                    //route = if (userInput.isNullOrEmpty()) FlightSearchScreens.FlightSearch.name else FlightSearchScreens.Favorite.name
                 ){
                     if(userInput.isNotBlank() && airports.isNotEmpty()){
                         AutoCompleteTextView(
@@ -80,6 +84,18 @@ fun FlightSearchApp(
                             },
                             modifier = Modifier.padding(start=15.dp, top =0.dp, end=15.dp)
                         )
+                    }else{
+                        if(favorites.value.isNotEmpty()){
+                            FavoriteListScreen(
+                                favorites.value,
+                                onDeleteAction = {departureCode, destinationCode->
+                                    coroutineScope.launch {
+                                        viewModel.removeFavorite(departureCode, destinationCode)
+                                    }
+                                },
+                                modifier = Modifier.padding(start=15.dp, top =0.dp, end=15.dp)
+                            )
+                        }
                     }
                 }
                 val flightArgument = "selectedAirport"
@@ -90,10 +106,26 @@ fun FlightSearchApp(
                     val flightName = backStackEntry.arguments?.getString(flightArgument)
                         ?: error("busRouteArgument cannot be null")
 
-                    Log.d("AirportInfo", "$flightName")
+                    Log.d("Log", "$flightName")
                     val airport by viewModel.getAirportByName(flightName).collectAsState(null)
                     val flights by viewModel.getFlightListByAirport(flightName).collectAsState(emptyList())
-                    airport?.let { FlightListScreen(it, flights,modifier = Modifier.padding(start=15.dp, top =0.dp, end=15.dp)) }
+                    airport?.let {
+                        FlightListScreen(
+                            dptAirport =  it,
+                            airports = flights,
+                            favorites = favorites.value,
+                            onDeleteAction = {departureCode, destinationCode->
+                                coroutineScope.launch {
+                                    viewModel.removeFavorite(departureCode, destinationCode)
+                                }
+                            },
+                            onAddAction = {departureCode, destinationCode->
+                                coroutineScope.launch {
+                                    viewModel.saveFavorite(departureCode, destinationCode)
+                                }
+                            },
+                            modifier = Modifier.padding(start=15.dp, top =0.dp, end=15.dp))
+                    }
                 }
             }
 

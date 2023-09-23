@@ -39,7 +39,6 @@ fun AutoCompleteTextView(
                 modifier = Modifier.padding(3.dp)
                     .clickable(enabled = onAirportClick != null) {
                         onAirportClick?.invoke(it.iataCode)
-                        Log.d("AirportInfo", "clicked")
                     }
                 )
         }

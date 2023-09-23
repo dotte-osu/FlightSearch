@@ -26,3 +26,4 @@ data class Favorite (
     @ColumnInfo(name = "destination_code")
     val destinationCode: String
 )
+
