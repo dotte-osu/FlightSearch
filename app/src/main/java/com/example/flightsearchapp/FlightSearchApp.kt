@@ -85,7 +85,7 @@ fun FlightSearchApp(
                             modifier = Modifier.padding(start=15.dp, top =0.dp, end=15.dp)
                         )
                     }else{
-                        if(favorites.value.isNotEmpty()){
+                        if(userInput.isBlank() && favorites.value.isNotEmpty()){
                             FavoriteListScreen(
                                 favorites.value,
                                 onDeleteAction = {departureCode, destinationCode->

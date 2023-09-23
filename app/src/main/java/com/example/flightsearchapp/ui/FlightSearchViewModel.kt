@@ -1,53 +1,48 @@
 package com.example.flightsearchapp.ui
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.toUpperCase
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.lifecycle.viewmodel.compose.saveable
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.flightsearchapp.data.UserPreferencesRepository
 import com.example.flightsearchapp.FlightSearchApplication
 import com.example.flightsearchapp.data.Airport
 import com.example.flightsearchapp.data.Favorite
 import com.example.flightsearchapp.data.FlightScheduleDao
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class FlightSearchViewModel(
-    private val flightScheduleDao: FlightScheduleDao
+    private val flightScheduleDao: FlightScheduleDao,
+    private val userPreferencesRepository: UserPreferencesRepository
 ): ViewModel()  {
 
-    private val _userInputFlow = MutableStateFlow<String>("")
+    private val _userInputFlow: StateFlow<String> =
+        userPreferencesRepository.getFromDataStore.map { it ->
+            it
+        }.stateIn(
+            scope = viewModelScope,
+            // Flow is set to emits value for when app is on the foreground
+            // 5 seconds stop delay is added to ensure it flows continuously
+            // for cases such as configuration change
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ""
+        )
+
     val userInput: StateFlow<String> get() = _userInputFlow
 
     fun update(userInput: String) {
-        _userInputFlow.value = userInput
-    }
-
-
-    private val _favorite = MutableStateFlow<Favorite?>(null)
-    val favorite: StateFlow<Favorite?>  get() = _favorite
-    fun updateFavorite(favorite: Favorite) {
-        _favorite.value = favorite
+        viewModelScope.launch {
+            userPreferencesRepository.savePreference(userInput)
+        }
     }
 
     fun getAirportByName(userInput: String): Flow<Airport> =
@@ -81,7 +76,7 @@ class FlightSearchViewModel(
     companion object {
         val factory : ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                FlightSearchViewModel(flightStateApplication().database.flightScheduleDao())
+                FlightSearchViewModel(flightStateApplication().database.flightScheduleDao(), flightStateApplication().userPreferencesRepository )
             }
         }
     }
